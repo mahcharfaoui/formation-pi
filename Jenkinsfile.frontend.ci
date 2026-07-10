@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = "asmaamh/frontend:${BUILD_NUMBER}"
         DOCKER_IMAGE_LATEST = "asmaamh/frontend:latest"
+        SONAR_HOST_URL = 'http://192.168.78.133:9000'
     }
 
     stages {
@@ -27,6 +28,18 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh 'npm run build -- --configuration=production'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('frontend') {
+                    withSonarQubeEnv('SonarQube') {
+                        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                            sh 'sonar-scanner -Dsonar.projectKey=frontend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.sources=src -Dsonar.exclusions=**/node_modules/**,**/dist/** -Dsonar.tests=src -Dsonar.test.inclusion=**/*.spec.ts -Dsonar.typescript.lcov.reportPaths=coverage/frontend/lcov.info -Dsonar.javascript.lcov.reportPaths=coverage/frontend/lcov.info'
+                        }
+                    }
                 }
             }
         }
