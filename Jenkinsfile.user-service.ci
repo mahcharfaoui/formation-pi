@@ -1,0 +1,97 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'JDK-17'
+    }
+
+    environment {
+        DOCKER_IMAGE = "asmaamh/user-service:${BUILD_NUMBER}"
+        DOCKER_IMAGE_LATEST = "asmaamh/user-service:latest"
+        SONAR_HOST_URL = 'http://192.168.78.133:9000'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/mahcharfaoui/formation-pi.git',
+                    credentialsId: 'github-credentials'
+            }
+        }
+
+        stage('Build Maven') {
+            steps {
+                dir('backend/user-service') {
+                    sh 'mvn clean compile -DskipTests'
+                }
+            }
+        }
+
+        stage('Tests') {
+            steps {
+                dir('backend/user-service') {
+                    sh 'mvn test'
+                    sh 'mvn jacoco:report'
+                }
+            }
+            post {
+                always {
+                    junit 'backend/user-service/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('backend/user-service') {
+                    withSonarQubeEnv('SonarQube') {
+                        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                            sh 'mvn sonar:sonar -Dsonar.projectKey=user-service -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Package JAR') {
+            steps {
+                dir('backend/user-service') {
+                    sh 'mvn package -DskipTests'
+                }
+            }
+        }
+
+        stage('Build & Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('', 'docker-hub-credentials') {
+                        def customImage = docker.build("${DOCKER_IMAGE}", "-f backend/user-service/Dockerfile backend/user-service")
+                        customImage.push()
+                        customImage.push('latest')
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            emailext(
+                subject: "[CI] ECHEC - user-service #${BUILD_NUMBER}",
+                body: "Le build CI user-service #${BUILD_NUMBER} a echoue.\nVoir: ${env.BUILD_URL}",
+                to: 'ton-email@gmail.com'
+            )
+        }
+        success {
+            emailext(
+                subject: "[CI] SUCCES - user-service #${BUILD_NUMBER}",
+                body: "Image docker push: asmaamh/user-service:${BUILD_NUMBER}",
+                to: 'ton-email@gmail.com'
+            )
+            build job: 'user-service-cd',
+                parameters: [string(name: 'DOCKER_TAG', value: "${BUILD_NUMBER}")],
+                wait: false
+        }
+    }
+}

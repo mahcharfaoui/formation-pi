@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: user-service
-          image: plateforme/user-service:latest
+          image: asmaamh/user-service:latest
           ports:
             - containerPort: 8082
           env:
