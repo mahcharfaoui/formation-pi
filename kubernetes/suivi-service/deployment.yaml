@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: suivi-service
+  labels:
+    app: suivi-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: suivi-service
+  template:
+    metadata:
+      labels:
+        app: suivi-service
+    spec:
+      containers:
+        - name: suivi-service
+          image: plateforme/suivi-service:latest
+          ports:
+            - containerPort: 8086
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres:5432/suivi_db"
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: "http://eureka-server:8761/eureka/"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: suivi-service
+spec:
+  selector:
+    app: suivi-service
+  ports:
+    - port: 8086
+      targetPort: 8086
+  type: ClusterIP

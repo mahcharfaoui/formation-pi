@@ -1,0 +1,109 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME = 'frontend'
+        SERVICE_DIR = 'frontend'
+        DOCKERFILE = 'frontend/Dockerfile'
+        DOCKER_REGISTRY = 'registry.example.com'
+        IMAGE_TAG = "${DOCKER_REGISTRY}/plateforme/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        IMAGE_LATEST = "${DOCKER_REGISTRY}/plateforme/${SERVICE_NAME}:latest"
+        K8S_NAMESPACE = 'plateforme'
+        K8S_DEPLOYMENT_DIR = 'kubernetes/frontend'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh """
+                        docker build \\
+                            -f ${DOCKERFILE} \\
+                            -t ${IMAGE_TAG} \\
+                            -t ${IMAGE_LATEST} \\
+                            ${SERVICE_DIR}
+                    """
+                }
+            }
+        }
+
+        stage('Push to Registry') {
+            steps {
+                script {
+                    withDockerRegistry([credentialsId: 'docker-registry-cred', url: "https://${DOCKER_REGISTRY}"]) {
+                        sh """
+                            docker push ${IMAGE_TAG}
+                            docker push ${IMAGE_LATEST}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    withKubeConfig([credentialsId: 'kubeconfig-cred']) {
+                        sh """
+                            kubectl apply -f ${K8S_DEPLOYMENT_DIR}/ -n ${K8S_NAMESPACE}
+
+                            kubectl rollout status deployment/${SERVICE_NAME} \\
+                                -n ${K8S_NAMESPACE} --timeout=5m
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    withKubeConfig([credentialsId: 'kubeconfig-cred']) {
+                        sh """
+                            kubectl get pods -n ${K8S_NAMESPACE} -l app=${SERVICE_NAME}
+                            kubectl get services -n ${K8S_NAMESPACE} -l app=${SERVICE_NAME}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                script {
+                    sh """
+                        sleep 10
+                        curl -sS http://localhost:4200/ | grep -q 'plateforme'
+                        echo "Smoke test passed: Frontend est accessible"
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            emailext(
+                subject: "[CD SUCCESS] Frontend déployé v${env.BUILD_NUMBER}",
+                body: "Déploiement réussi du Frontend version ${env.BUILD_NUMBER} sur Kubernetes.",
+                to: 'team@example.com'
+            )
+        }
+        failure {
+            emailext(
+                subject: "[CD FAILED] Frontend - v${env.BUILD_NUMBER}",
+                body: "Le déploiement du Frontend a échoué.\nVoir: ${env.BUILD_URL}",
+                to: 'team@example.com'
+            )
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

@@ -1,0 +1,36 @@
+import { Routes } from '@angular/router';
+import { HomeComponent } from './components/home/home.component';
+import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { CatalogueComponent } from './components/catalogue/catalogue.component';
+import { GestionChapitresComponent } from './components/catalogue/gestion-chapitres.component';
+import { UtilisateursComponent } from './components/utilisateurs/utilisateurs.component';
+import { FormateursComponent } from './components/formateurs/formateurs.component';
+import { SessionsComponent } from './components/sessions/sessions.component';
+import { QuizComponent } from './components/quiz/quiz.component';
+import { SuiviComponent } from './components/suivi/suivi.component';
+import { CertificationsComponent } from './components/certifications/certifications.component';
+import { RecommandationsComponent } from './components/recommandations/recommandations.component';
+import { LoginComponent } from './components/auth/login.component';
+import { RegisterComponent } from './components/auth/register.component';
+import { AdminUsersComponent } from './components/auth/admin-users.component';
+import { ChoixFormationsComponent } from './components/student/choix-formations.component';
+import { MesFormationsComponent } from './components/student/mes-formations.component';
+
+export const routes: Routes = [
+  { path: '', component: HomeComponent },
+  { path: 'dashboard', component: DashboardComponent },
+  { path: 'catalogue', component: CatalogueComponent },
+  { path: 'catalogue/:id/chapitres', component: GestionChapitresComponent },
+  { path: 'utilisateurs', component: UtilisateursComponent },
+  { path: 'formateurs', component: FormateursComponent },
+  { path: 'sessions', component: SessionsComponent },
+  { path: 'quiz', component: QuizComponent },
+  { path: 'suivi', component: SuiviComponent },
+  { path: 'certifications', component: CertificationsComponent },
+  { path: 'recommandations', component: RecommandationsComponent },
+  { path: 'choix-formations', component: ChoixFormationsComponent },
+  { path: 'mes-formations', component: MesFormationsComponent },
+  { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
+  { path: 'admin/users', component: AdminUsersComponent }
+];

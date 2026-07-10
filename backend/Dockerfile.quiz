@@ -1,0 +1,22 @@
+FROM eclipse-temurin:17-jdk-alpine AS build
+
+WORKDIR /app
+
+COPY backend/pom.xml ./backend/
+COPY backend/quiz-service/pom.xml ./backend/quiz-service/
+
+RUN cd backend && mvn dependency:go-offline -pl quiz-service
+
+COPY backend/quiz-service/src ./backend/quiz-service/src
+
+RUN cd backend && mvn clean package -pl quiz-service -DskipTests
+
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+COPY --from=build /app/backend/quiz-service/target/*.jar app.jar
+
+EXPOSE 8085
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

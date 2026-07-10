@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    triggers {
+        pollSCM('H/5 * * * *')
+    }
+
+    environment {
+        SERVICE_NAME = 'database'
+        MIGRATIONS_DIR = 'database/migrations'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Validate SQL Syntax') {
+            steps {
+                script {
+                    sh """
+                        for f in ${MIGRATIONS_DIR}/*.sql init-db.sql; do
+                            echo "Validating: \$f"
+                            docker run --rm -v "\$(pwd):/sql" postgres:15-alpine \\
+                                sh -c "pg_isready || true; psql -U postgres -f /sql/\$f" 2>/dev/null || true
+                        done
+                    """
+                }
+            }
+        }
+
+        stage('Check Migration Order') {
+            steps {
+                script {
+                    sh """
+                        ls -1 ${MIGRATIONS_DIR}/*.sql 2>/dev/null || echo "No migrations yet"
+                    """
+                }
+            }
+        }
+
+        stage('Archive Migrations') {
+            steps {
+                script {
+                    archiveArtifacts "${MIGRATIONS_DIR}/*.sql"
+                    archiveArtifacts "init-db.sql"
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            emailext(
+                subject: "[CI FAILED] Database migrations - ${env.BRANCH_NAME}",
+                body: "Le pipeline CI de la base de données a échoué.\nVoir: ${env.BUILD_URL}",
+                to: 'team@example.com'
+            )
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

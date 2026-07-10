@@ -1,0 +1,22 @@
+FROM eclipse-temurin:17-jdk-alpine AS build
+
+WORKDIR /app
+
+COPY backend/pom.xml ./backend/
+COPY backend/api-gateway/pom.xml ./backend/api-gateway/
+
+RUN cd backend && mvn dependency:go-offline -pl api-gateway
+
+COPY backend/api-gateway/src ./backend/api-gateway/src
+
+RUN cd backend && mvn clean package -pl api-gateway -DskipTests
+
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+COPY --from=build /app/backend/api-gateway/target/*.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

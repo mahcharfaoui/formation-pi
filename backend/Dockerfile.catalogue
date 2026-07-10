@@ -1,0 +1,22 @@
+FROM eclipse-temurin:17-jdk-alpine AS build
+
+WORKDIR /app
+
+COPY backend/pom.xml ./backend/
+COPY backend/catalogue-service/pom.xml ./backend/catalogue-service/
+
+RUN cd backend && mvn dependency:go-offline -pl catalogue-service
+
+COPY backend/catalogue-service/src ./backend/catalogue-service/src
+
+RUN cd backend && mvn clean package -pl catalogue-service -DskipTests
+
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+COPY --from=build /app/backend/catalogue-service/target/*.jar app.jar
+
+EXPOSE 8081
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

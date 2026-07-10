@@ -1,0 +1,58 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'eureka-server'
+    static_configs:
+      - targets: ['eureka-server:8761']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:8080']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'catalogue-service'
+    static_configs:
+      - targets: ['catalogue-service:8081']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['user-service:8082']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'formateur-service'
+    static_configs:
+      - targets: ['formateur-service:8083']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'session-service'
+    static_configs:
+      - targets: ['session-service:8084']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'quiz-service'
+    static_configs:
+      - targets: ['quiz-service:8085']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'suivi-service'
+    static_configs:
+      - targets: ['suivi-service:8086']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'certification-service'
+    static_configs:
+      - targets: ['certification-service:8087']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'ml-service'
+    static_configs:
+      - targets: ['ml-service:8088']
+    metrics_path: '/actuator/prometheus'

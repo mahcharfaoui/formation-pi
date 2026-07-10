@@ -1,0 +1,138 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_REGISTRY = 'registry.example.com'
+        APP_NAME = 'plateforme-formations'
+        KUBERNETES_NAMESPACE = 'plateforme'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Backend') {
+            steps {
+                script {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                script {
+                    sh 'mvn test'
+                }
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Code Analysis') {
+            steps {
+                script {
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                script {
+                    timeout(time: 5, unit: 'MINUTES') {
+                        waitForQualityGate abortPipeline: true
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                script {
+                    sh '''
+                        docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-eureka-server:latest -f backend/Dockerfile.eureka .
+                        docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-api-gateway:latest -f backend/Dockerfile.gateway .
+                        docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-catalogue-service:latest -f backend/Dockerfile.catalogue .
+                        docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-user-service:latest -f backend/Dockerfile.user .
+                        docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-formateur-service:latest -f backend/Dockerfile.formateur .
+                        docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-session-service:latest -f backend/Dockerfile.session .
+                        docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-quiz-service:latest -f backend/Dockerfile.quiz .
+                        docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-suivi-service:latest -f backend/Dockerfile.suivi .
+                        docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-certification-service:latest -f backend/Dockerfile.certification .
+                        docker build -t ${DOCKER_REGISTRY}/${APP_NAME}-ml-service:latest -f backend/Dockerfile.ml .
+                    '''
+                }
+            }
+        }
+
+        stage('Push to Registry') {
+            steps {
+                script {
+                    sh '''
+                        docker push ${DOCKER_REGISTRY}/${APP_NAME}-eureka-server:latest
+                        docker push ${DOCKER_REGISTRY}/${APP_NAME}-api-gateway:latest
+                        docker push ${DOCKER_REGISTRY}/${APP_NAME}-catalogue-service:latest
+                        docker push ${DOCKER_REGISTRY}/${APP_NAME}-user-service:latest
+                        docker push ${DOCKER_REGISTRY}/${APP_NAME}-formateur-service:latest
+                        docker push ${DOCKER_REGISTRY}/${APP_NAME}-session-service:latest
+                        docker push ${DOCKER_REGISTRY}/${APP_NAME}-quiz-service:latest
+                        docker push ${DOCKER_REGISTRY}/${APP_NAME}-suivi-service:latest
+                        docker push ${DOCKER_REGISTRY}/${APP_NAME}-certification-service:latest
+                        docker push ${DOCKER_REGISTRY}/${APP_NAME}-ml-service:latest
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    sh '''
+                        kubectl apply -f kubernetes/eureka-server/ -n ${KUBERNETES_NAMESPACE}
+                        kubectl apply -f kubernetes/api-gateway/ -n ${KUBERNETES_NAMESPACE}
+                        kubectl apply -f kubernetes/catalogue-service/ -n ${KUBERNETES_NAMESPACE}
+                        kubectl apply -f kubernetes/user-service/ -n ${KUBERNETES_NAMESPACE}
+                        kubectl apply -f kubernetes/formateur-service/ -n ${KUBERNETES_NAMESPACE}
+                        kubectl apply -f kubernetes/session-service/ -n ${KUBERNETES_NAMESPACE}
+                        kubectl apply -f kubernetes/quiz-service/ -n ${KUBERNETES_NAMESPACE}
+                        kubectl apply -f kubernetes/suivi-service/ -n ${KUBERNETES_NAMESPACE}
+                        kubectl apply -f kubernetes/certification-service/ -n ${KUBERNETES_NAMESPACE}
+                        kubectl apply -f kubernetes/ml-service/ -n ${KUBERNETES_NAMESPACE}
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    sh '''
+                        kubectl get pods -n ${KUBERNETES_NAMESPACE}
+                        kubectl get services -n ${KUBERNETES_NAMESPACE}
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline exécuté avec succès!'
+        }
+        failure {
+            echo 'Le pipeline a échoué!'
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

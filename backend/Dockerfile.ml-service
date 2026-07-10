@@ -1,0 +1,5 @@
+FROM eclipse-temurin:17-jre-jammy
+WORKDIR /app
+COPY backend/ml-service/target/ml-service-3.2.5.jar app.jar
+EXPOSE 8088
+ENTRYPOINT ["java", "-XX:TieredStopAtLevel=1", "-XX:+UseSerialGC", "-Xmx384m", "-jar", "app.jar"]

@@ -1,0 +1,9 @@
+# Profil développement — désactive l'authentification JWT (pas besoin de Keycloak)
+server:
+  port: 8090
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ""

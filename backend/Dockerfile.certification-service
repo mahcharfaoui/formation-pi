@@ -1,0 +1,5 @@
+FROM eclipse-temurin:17-jre-jammy
+WORKDIR /app
+COPY backend/certification-service/target/certification-service-3.2.5.jar app.jar
+EXPOSE 8087
+ENTRYPOINT ["java", "-XX:TieredStopAtLevel=1", "-XX:+UseSerialGC", "-Xmx384m", "-jar", "app.jar"]

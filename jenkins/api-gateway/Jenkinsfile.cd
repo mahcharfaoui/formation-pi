@@ -1,0 +1,111 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME = 'api-gateway'
+        SERVICE_DIR = 'backend/api-gateway'
+        DOCKERFILE = 'backend/Dockerfile.api-gateway'
+        DOCKER_REGISTRY = 'registry.example.com'
+        IMAGE_TAG = "${DOCKER_REGISTRY}/plateforme/${SERVICE_NAME}:${env.BUILD_NUMBER}"
+        IMAGE_LATEST = "${DOCKER_REGISTRY}/plateforme/${SERVICE_NAME}:latest"
+        K8S_NAMESPACE = 'plateforme'
+        K8S_DEPLOYMENT_DIR = 'kubernetes/api-gateway'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh """
+                        docker build \\
+                            -f ${DOCKERFILE} \\
+                            -t ${IMAGE_TAG} \\
+                            -t ${IMAGE_LATEST} \\
+                            .
+                    """
+                }
+            }
+        }
+
+        stage('Push to Registry') {
+            steps {
+                script {
+                    withDockerRegistry([credentialsId: 'docker-registry-cred', url: "https://${DOCKER_REGISTRY}"]) {
+                        sh """
+                            docker push ${IMAGE_TAG}
+                            docker push ${IMAGE_LATEST}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    withKubeConfig([credentialsId: 'kubeconfig-cred']) {
+                        sh """
+                            kubectl set image deployment/${SERVICE_NAME} \\
+                                ${SERVICE_NAME}=${IMAGE_TAG} \\
+                                -n ${K8S_NAMESPACE} --record
+
+                            kubectl rollout status deployment/${SERVICE_NAME} \\
+                                -n ${K8S_NAMESPACE} --timeout=5m
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    withKubeConfig([credentialsId: 'kubeconfig-cred']) {
+                        sh """
+                            kubectl get pods -n ${K8S_NAMESPACE} -l app=${SERVICE_NAME}
+                            kubectl get services -n ${K8S_NAMESPACE} -l app=${SERVICE_NAME}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                script {
+                    sh """
+                        sleep 10
+                        curl -sS http://localhost:8090/actuator/health | grep -q '"status":"UP"'
+                        echo "Smoke test passed: ${SERVICE_NAME} is UP"
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            emailext(
+                subject: "[CD SUCCESS] ${SERVICE_NAME} déployé v${env.BUILD_NUMBER}",
+                body: "Déploiement réussi de ${SERVICE_NAME} version ${env.BUILD_NUMBER} sur Kubernetes.",
+                to: 'team@example.com'
+            )
+        }
+        failure {
+            emailext(
+                subject: "[CD FAILED] ${SERVICE_NAME} - v${env.BUILD_NUMBER}",
+                body: "Le déploiement de ${SERVICE_NAME} a échoué.\nVoir: ${env.BUILD_URL}",
+                to: 'team@example.com'
+            )
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

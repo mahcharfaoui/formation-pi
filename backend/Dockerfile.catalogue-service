@@ -1,0 +1,5 @@
+FROM eclipse-temurin:17-jre-jammy
+WORKDIR /app
+COPY backend/catalogue-service/target/catalogue-service-3.2.5.jar app.jar
+EXPOSE 8081
+ENTRYPOINT ["java", "-XX:TieredStopAtLevel=1", "-XX:+UseSerialGC", "-Xmx384m", "-jar", "app.jar"]

@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+
+    triggers {
+        pollSCM('H/5 * * * *')
+    }
+
+    environment {
+        SERVICE_NAME = 'frontend'
+        SERVICE_DIR = 'frontend'
+        SONAR_PROJECT_KEY = "${SERVICE_NAME}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                script {
+                    dir("${SERVICE_DIR}") {
+                        sh 'npm install --frozen-lockfile'
+                    }
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                script {
+                    dir("${SERVICE_DIR}") {
+                        sh 'npm run lint'
+                    }
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                script {
+                    dir("${SERVICE_DIR}") {
+                        sh 'npm run test -- --no-watch --browsers=ChromeHeadless'
+                    }
+                }
+            }
+            post {
+                always {
+                    junit "${SERVICE_DIR}/test-results/*.xml"
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    dir("${SERVICE_DIR}") {
+                        sh 'npm run build -- --configuration=production'
+                    }
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts "${SERVICE_DIR}/dist/"
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            emailext(
+                subject: "[CI FAILED] Frontend - ${env.BRANCH_NAME}",
+                body: "Le pipeline CI du Frontend a échoué.\nVoir: ${env.BUILD_URL}",
+                to: 'team@example.com'
+            )
+        }
+        always {
+            cleanWs()
+        }
+    }
+}

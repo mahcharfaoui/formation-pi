@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVICE_NAME = 'database'
+        MIGRATIONS_DIR = 'database/migrations'
+        DB_HOST = 'postgres'
+        DB_PORT = '5432'
+        DB_USER = 'postgres'
+        DB_PASSWORD = 'postgres'
+        K8S_NAMESPACE = 'plateforme'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Apply Database Migrations') {
+            steps {
+                script {
+                    withKubeConfig([credentialsId: 'kubeconfig-cred']) {
+                        sh """
+                            # Copy migration files to a temporary pod and execute
+                            kubectl run migration-job --image=postgres:15-alpine \\
+                                --namespace=${K8S_NAMESPACE} --restart=Never \\
+                                --env=PGPASSWORD=${DB_PASSWORD} \\
+                                -- /bin/sh -c "
+                                    for f in /migrations/*.sql; do
+                                        echo 'Applying: ' \$f
+                                        psql -h ${DB_HOST} -U ${DB_USER} -d postgres -f \$f
+                                    done
+                                "
+                            kubectl wait --for=condition=complete job/migration-job \\
+                                --namespace=${K8S_NAMESPACE} --timeout=60s
+                            kubectl delete job migration-job --namespace=${K8S_NAMESPACE}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Verify Databases') {
+            steps {
+                script {
+                    withKubeConfig([credentialsId: 'kubeconfig-cred']) {
+                        sh """
+                            kubectl run verify-job --image=postgres:15-alpine \\
+                                --namespace=${K8S_NAMESPACE} --restart=Never \\
+                                --env=PGPASSWORD=${DB_PASSWORD} \\
+                                -- psql -h ${DB_HOST} -U ${DB_USER} -d postgres \\
+                                    -c 'SELECT datname FROM pg_database;'
+                            kubectl wait --for=condition=complete job/verify-job \\
+                                --namespace=${K8S_NAMESPACE} --timeout=30s
+                            kubectl delete job verify-job --namespace=${K8S_NAMESPACE}
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            emailext(
+                subject: "[CD SUCCESS] Migrations BDD appliquées",
+                body: "Les migrations de la base de données ont été appliquées avec succès.",
+                to: 'team@example.com'
+            )
+        }
+        failure {
+            emailext(
+                subject: "[CD FAILED] Migrations BDD échouées",
+                body: "L'application des migrations a échoué.\nVoir: ${env.BUILD_URL}",
+                to: 'team@example.com'
+            )
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
