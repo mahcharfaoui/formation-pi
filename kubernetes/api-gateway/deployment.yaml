@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: plateforme/api-gateway:latest
+          image: asmaamh/api-gateway:latest
           ports:
             - containerPort: 8080
           env:
@@ -40,4 +40,4 @@ spec:
   ports:
     - port: 8080
       targetPort: 8080
-  type: LoadBalancer
+  type: ClusterIP
