@@ -89,6 +89,9 @@ pipeline {
                 body: "Image docker push: mahcharfaoui/api-gateway:${BUILD_NUMBER}",
                 to: 'ton-email@gmail.com'
             )
+            build job: 'api-gateway-cd',
+                parameters: [string(name: 'DOCKER_TAG', value: "${BUILD_NUMBER}")],
+                wait: false
         }
     }
 }
