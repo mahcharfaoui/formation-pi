@@ -24,7 +24,7 @@ pipeline {
         stage('Build Maven') {
             steps {
                 dir('backend/api-gateway') {
-                    bat 'mvn clean compile -DskipTests'
+                    sh 'mvn clean compile -DskipTests'
                 }
             }
         }
@@ -32,7 +32,7 @@ pipeline {
         stage('Tests') {
             steps {
                 dir('backend/api-gateway') {
-                    bat 'mvn test'
+                    sh 'mvn test'
                 }
             }
             post {
@@ -47,7 +47,7 @@ pipeline {
                 dir('backend/api-gateway') {
                     withSonarQubeEnv('SonarQube') {
                         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                            bat "mvn sonar:sonar -Dsonar.projectKey=api-gateway -Dsonar.host.url=%SONAR_HOST_URL% -Dsonar.login=%SONAR_TOKEN%"
+                            sh 'mvn sonar:sonar -Dsonar.projectKey=api-gateway -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN'
                         }
                     }
                 }
@@ -57,7 +57,7 @@ pipeline {
         stage('Package JAR') {
             steps {
                 dir('backend/api-gateway') {
-                    bat 'mvn package -DskipTests'
+                    sh 'mvn package -DskipTests'
                 }
             }
         }

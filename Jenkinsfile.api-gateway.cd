@@ -21,7 +21,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    bat "kubectl set image deployment/api-gateway -n plateforme api-gateway=%DOCKER_IMAGE%"
+                    sh "kubectl set image deployment/api-gateway -n plateforme api-gateway=${DOCKER_IMAGE}"
                 }
             }
         }
@@ -29,7 +29,7 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 script {
-                    bat "kubectl rollout status deployment/api-gateway -n plateforme"
+                    sh "kubectl rollout status deployment/api-gateway -n plateforme"
                 }
             }
         }
