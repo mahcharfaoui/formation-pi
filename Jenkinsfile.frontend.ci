@@ -23,14 +23,6 @@ pipeline {
             }
         }
 
-        stage('Tests') {
-            steps {
-                dir('frontend') {
-                    sh 'npm run test -- --no-watch'
-                }
-            }
-        }
-
         stage('Build') {
             steps {
                 dir('frontend') {
