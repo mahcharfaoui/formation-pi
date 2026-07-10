@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        jdk 'JDK-17'
+    }
+
     environment {
         DOCKER_IMAGE = "mahcharfaoui/api-gateway:${BUILD_NUMBER}"
         DOCKER_IMAGE_LATEST = "mahcharfaoui/api-gateway:latest"
