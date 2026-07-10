@@ -20,7 +20,7 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh "kubectl set image deployment/api-gateway -n plateforme api-gateway=${DOCKER_IMAGE} --record"
+                sh "kubectl create deployment api-gateway -n plateforme --image=${DOCKER_IMAGE} --dry-run=client -o yaml | kubectl apply -f -"
             }
         }
 
