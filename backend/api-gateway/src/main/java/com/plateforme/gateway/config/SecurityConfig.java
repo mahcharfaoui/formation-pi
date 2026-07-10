@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .anyExchange().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> {})
+                .jwt(org.springframework.security.config.Customizer.withDefaults())
             );
         return http.build();
     }
