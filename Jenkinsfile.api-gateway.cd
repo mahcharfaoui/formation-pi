@@ -20,7 +20,10 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                script {
+                withKubeConfig(
+                    credentialsId: 'kubeconfig-credentials',
+                    serverUrl: 'https://<IP-DU-CLUSTER>:6443'
+                ) {
                     sh "kubectl set image deployment/api-gateway -n plateforme api-gateway=${DOCKER_IMAGE}"
                 }
             }
@@ -28,7 +31,10 @@ pipeline {
 
         stage('Verify Deployment') {
             steps {
-                script {
+                withKubeConfig(
+                    credentialsId: 'kubeconfig-credentials',
+                    serverUrl: 'https://<IP-DU-CLUSTER>:6443'
+                ) {
                     sh "kubectl rollout status deployment/api-gateway -n plateforme"
                 }
             }
