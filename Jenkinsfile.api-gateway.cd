@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Tag Docker a deployer (ex: 42 ou latest)')
+    }
+
+    environment {
+        DOCKER_IMAGE = "mahcharfaoui/api-gateway:${params.DOCKER_TAG}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/mahcharfaoui/formation-pi.git',
+                    credentialsId: 'github-credentials'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    bat "kubectl set image deployment/api-gateway -n plateforme api-gateway=%DOCKER_IMAGE%"
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    bat "kubectl rollout status deployment/api-gateway -n plateforme"
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            emailext(
+                subject: "[CD] ECHEC - api-gateway deploy #${BUILD_NUMBER}",
+                body: "Le deploiement api-gateway tag ${params.DOCKER_TAG} a echoue.",
+                to: 'ton-email@gmail.com'
+            )
+        }
+        success {
+            emailext(
+                subject: "[CD] SUCCES - api-gateway deploy #${BUILD_NUMBER}",
+                body: "Deploiement reussi: ${DOCKER_IMAGE}",
+                to: 'ton-email@gmail.com'
+            )
+        }
+    }
+}

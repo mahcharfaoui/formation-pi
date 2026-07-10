@@ -9,7 +9,6 @@ pipeline {
     environment {
         DOCKER_IMAGE = "mahcharfaoui/api-gateway:${BUILD_NUMBER}"
         DOCKER_IMAGE_LATEST = "mahcharfaoui/api-gateway:latest"
-
         SONAR_HOST_URL = 'http://192.168.1.100:9000'
     }
 
@@ -67,18 +66,10 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('', 'docker-hub-credentials') {
-                        def customImage = docker.build("${DOCKER_IMAGE}", "-f backend/Dockerfile.api-gateway backend/api-gateway")
+                        def customImage = docker.build("${DOCKER_IMAGE}", "-f backend/api-gateway/Dockerfile backend/api-gateway")
                         customImage.push()
                         customImage.push('latest')
                     }
-                }
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    bat "kubectl set image deployment/api-gateway -n plateforme api-gateway=%DOCKER_IMAGE%"
                 }
             }
         }
@@ -88,14 +79,14 @@ pipeline {
         failure {
             emailext(
                 subject: "[CI] ECHEC - api-gateway #${BUILD_NUMBER}",
-                body: "Le build api-gateway #${BUILD_NUMBER} a echoue.\nVoir: ${env.BUILD_URL}",
+                body: "Le build CI api-gateway #${BUILD_NUMBER} a echoue.\nVoir: ${env.BUILD_URL}",
                 to: 'ton-email@gmail.com'
             )
         }
         success {
             emailext(
                 subject: "[CI] SUCCES - api-gateway #${BUILD_NUMBER}",
-                body: "Le build api-gateway #${BUILD_NUMBER} est deploye.",
+                body: "Image docker push: mahcharfaoui/api-gateway:${BUILD_NUMBER}",
                 to: 'ton-email@gmail.com'
             )
         }
