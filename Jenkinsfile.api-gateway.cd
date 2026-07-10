@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE = "mahcharfaoui/api-gateway:${params.DOCKER_TAG}"
+        DOCKER_IMAGE = "asmaamh/api-gateway:${params.DOCKER_TAG}"
     }
 
     stages {

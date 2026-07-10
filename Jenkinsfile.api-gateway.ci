@@ -6,8 +6,8 @@ pipeline {
     }
 
     environment {
-        DOCKER_IMAGE = "mahcharfaoui/api-gateway:${BUILD_NUMBER}"
-        DOCKER_IMAGE_LATEST = "mahcharfaoui/api-gateway:latest"
+        DOCKER_IMAGE = "asmaamh/api-gateway:${BUILD_NUMBER}"
+        DOCKER_IMAGE_LATEST = "asmaamh/api-gateway:latest"
         SONAR_HOST_URL = 'http://192.168.1.100:9000'
     }
 
@@ -85,7 +85,7 @@ pipeline {
         success {
             emailext(
                 subject: "[CI] SUCCES - api-gateway #${BUILD_NUMBER}",
-                body: "Image docker push: mahcharfaoui/api-gateway:${BUILD_NUMBER}",
+                body: "Image docker push: asmaamh/api-gateway:${BUILD_NUMBER}",
                 to: 'ton-email@gmail.com'
             )
             build job: 'api-gateway-cd',
