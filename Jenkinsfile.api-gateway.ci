@@ -32,6 +32,7 @@ pipeline {
             steps {
                 dir('backend/api-gateway') {
                     sh 'mvn test'
+                    sh 'mvn jacoco:report'
                 }
             }
             post {
