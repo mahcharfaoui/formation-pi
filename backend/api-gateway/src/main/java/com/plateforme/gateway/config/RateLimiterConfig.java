@@ -19,7 +19,9 @@ public class RateLimiterConfig {
     @Primary
     public KeyResolver userKeyResolver() {
         return exchange -> Mono.just(
-            exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
+            exchange.getRequest().getRemoteAddress() != null
+                ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
+                : "unknown"
         );
     }
 }

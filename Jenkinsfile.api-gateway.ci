@@ -46,7 +46,7 @@ pipeline {
                 dir('backend/api-gateway') {
                     withSonarQubeEnv('SonarQube') {
                         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                            sh 'mvn sonar:sonar -Dsonar.projectKey=api-gateway -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN'
+                            sh 'mvn sonar:sonar -Dsonar.projectKey=api-gateway -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml'
                         }
                     }
                 }
