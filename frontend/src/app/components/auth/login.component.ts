@@ -46,6 +46,7 @@ import { AuthService } from '../../services/auth.service';
           <div class="field">
             <label>Mot de passe</label>
             <input type="password" [(ngModel)]="motDePasse" name="motDePasse" required placeholder="Votre mot de passe">
+            <a href="#" class="forgot-link" (click)="onForgotPassword($event)">Mot de passe oublié ?</a>
           </div>
           <button type="submit" class="btn-primary" [disabled]="loading">
             <mat-icon *ngIf="loading" class="spin">hourglass_top</mat-icon>
@@ -180,6 +181,16 @@ import { AuthService } from '../../services/auth.service';
       background: #fff;
     }
     .field input::placeholder { color: #bbb; }
+    .forgot-link {
+      display: block;
+      text-align: right;
+      font-size: 13px;
+      color: #667eea;
+      text-decoration: none;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+    .forgot-link:hover { text-decoration: underline; }
     .btn-primary {
       width: 100%;
       padding: 12px;
@@ -213,6 +224,12 @@ export class LoginComponent {
   error = '';
 
   constructor(private authService: AuthService, private router: Router) {}
+
+  onForgotPassword(event: Event): void {
+    event.preventDefault();
+    // TODO: redirect to password reset page when implemented
+    alert('Fonctionnalité de réinitialisation de mot de passe à venir.');
+  }
 
   onLogin(): void {
     if (!this.email || !this.motDePasse) return;
