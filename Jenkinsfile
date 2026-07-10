@@ -1,0 +1,103 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven-3.9'
+        jdk 'JDK-17'
+    }
+
+    environment {
+        DOCKER_IMAGE = "mahcharfaoui/api-gateway:${BUILD_NUMBER}"
+        DOCKER_IMAGE_LATEST = "mahcharfaoui/api-gateway:latest"
+
+        SONAR_HOST_URL = 'http://192.168.1.100:9000'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/mahcharfaoui/formation-pi.git',
+                    credentialsId: 'github-credentials'
+            }
+        }
+
+        stage('Build Maven') {
+            steps {
+                dir('backend/api-gateway') {
+                    bat 'mvn clean compile -DskipTests'
+                }
+            }
+        }
+
+        stage('Tests') {
+            steps {
+                dir('backend/api-gateway') {
+                    bat 'mvn test'
+                }
+            }
+            post {
+                always {
+                    junit 'backend/api-gateway/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                dir('backend/api-gateway') {
+                    withSonarQubeEnv('SonarQube') {
+                        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                            bat "mvn sonar:sonar -Dsonar.projectKey=api-gateway -Dsonar.host.url=%SONAR_HOST_URL% -Dsonar.login=%SONAR_TOKEN%"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Package JAR') {
+            steps {
+                dir('backend/api-gateway') {
+                    bat 'mvn package -DskipTests'
+                }
+            }
+        }
+
+        stage('Build & Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('', 'docker-hub-credentials') {
+                        def customImage = docker.build("${DOCKER_IMAGE}", "-f backend/Dockerfile.api-gateway backend/api-gateway")
+                        customImage.push()
+                        customImage.push('latest')
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    bat "kubectl set image deployment/api-gateway -n plateforme api-gateway=%DOCKER_IMAGE%"
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            emailext(
+                subject: "[CI] ECHEC - api-gateway #${BUILD_NUMBER}",
+                body: "Le build api-gateway #${BUILD_NUMBER} a echoue.\nVoir: ${env.BUILD_URL}",
+                to: 'ton-email@gmail.com'
+            )
+        }
+        success {
+            emailext(
+                subject: "[CI] SUCCES - api-gateway #${BUILD_NUMBER}",
+                body: "Le build api-gateway #${BUILD_NUMBER} est deploye.",
+                to: 'ton-email@gmail.com'
+            )
+        }
+    }
+}
