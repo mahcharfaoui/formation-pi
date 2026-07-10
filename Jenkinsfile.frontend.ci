@@ -37,7 +37,7 @@ pipeline {
                 dir('frontend') {
                     withSonarQubeEnv('SonarQube') {
                         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                            sh 'npx sonarqube-scanner -Dsonar.projectKey=frontend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.sources=src -Dsonar.exclusions=**/node_modules/**,**/dist/** -Dsonar.tests=src -Dsonar.test.inclusion=**/*.spec.ts -Dsonar.typescript.lcov.reportPaths=coverage/frontend/lcov.info -Dsonar.javascript.lcov.reportPaths=coverage/frontend/lcov.info'
+                            sh 'npx sonarqube-scanner -Dsonar.projectKey=frontend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.sources=src -Dsonar.exclusions=**/node_modules/**,**/dist/** -Dsonar.typescript.lcov.reportPaths=coverage/frontend/lcov.info -Dsonar.javascript.lcov.reportPaths=coverage/frontend/lcov.info'
                         }
                     }
                 }
