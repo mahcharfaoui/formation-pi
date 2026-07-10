@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Tag Docker a deployer')
+    }
+
+    environment {
+        DOCKER_IMAGE = "asmaamh/frontend:${params.DOCKER_TAG}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/mahcharfaoui/formation-pi.git',
+                    credentialsId: 'github-credentials'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh "kubectl create deployment frontend -n plateforme --image=${DOCKER_IMAGE} --dry-run=client -o yaml | kubectl apply -f -"
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh "kubectl rollout status deployment/frontend -n plateforme"
+            }
+        }
+    }
+
+    post {
+        failure {
+            emailext(
+                subject: "[CD] ECHEC - frontend deploy #${BUILD_NUMBER}",
+                body: "Le deploiement frontend tag ${params.DOCKER_TAG} a echoue.",
+                to: 'ton-email@gmail.com'
+            )
+        }
+        success {
+            emailext(
+                subject: "[CD] SUCCES - frontend deploy #${BUILD_NUMBER}",
+                body: "Deploiement reussi: ${DOCKER_IMAGE}",
+                to: 'ton-email@gmail.com'
+            )
+        }
+    }
+}

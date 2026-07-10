@@ -16,12 +16,9 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: plateforme/frontend:latest
+          image: asmaamh/frontend:latest
           ports:
             - containerPort: 80
-          env:
-            - name: API_GATEWAY_URL
-              value: "http://api-gateway:8080"
           resources:
             requests:
               memory: "128Mi"
@@ -40,4 +37,4 @@ spec:
   ports:
     - port: 80
       targetPort: 80
-  type: LoadBalancer
+  type: ClusterIP
