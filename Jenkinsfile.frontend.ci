@@ -35,7 +35,7 @@ pipeline {
         stage('Tests') {
             steps {
                 dir('frontend') {
-                    sh 'npm run test -- --no-watch --code-coverage --browsers=ChromeHeadlessCustom'
+                    sh 'CHROMIUM_FLAGS="--no-sandbox" npm run test -- --no-watch --code-coverage --browsers=ChromeHeadless'
                 }
             }
         }
