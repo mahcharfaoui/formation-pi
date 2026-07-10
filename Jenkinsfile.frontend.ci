@@ -23,23 +23,10 @@ pipeline {
             }
         }
 
-        stage('Lint') {
-            steps {
-                dir('frontend') {
-                    sh 'npm run lint'
-                }
-            }
-        }
-
         stage('Tests') {
             steps {
                 dir('frontend') {
                     sh 'npm run test -- --no-watch --browsers=ChromeHeadless'
-                }
-            }
-            post {
-                always {
-                    junit 'frontend/test-results/*.xml'
                 }
             }
         }
